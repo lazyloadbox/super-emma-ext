@@ -1,4 +1,4 @@
-# Browser Extension with AI Chat
+# Browser Extension with AI
 
 A modern browser extension built with WXT, React, and TypeScript, featuring an AI chat interface with advanced markdown rendering and theme support.
 

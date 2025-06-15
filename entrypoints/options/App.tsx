@@ -13,22 +13,27 @@ import { OllamaClient } from '../../src/lib/ollama-client';
 import { AIProviderCard } from '../../src/components/ai-provider-card';
 import { AddProviderDialog } from '../../src/components/add-provider-dialog';
 
-type TabType = 'main' | 'settings' | 'features';
-type FeatureTabType = 'ai-models' | 'performance' | 'security' | 'advanced' | 'tab-sessions' | 'chat';
+type TabType = 'overview' | 'chat' | 'settings';
 
 const tabs = [
-  { id: 'main' as TabType, label: 'Overview', icon: Info },
-  { id: 'features' as TabType, label: 'Features', icon: Zap },
-  { id: 'settings' as TabType, label: 'Settings', icon: Settings },
+  { id: 'overview' as TabType, label: 'Overview', icon: Info, hash: '#overview' },
+  { id: 'chat' as TabType, label: 'Chat Features', icon: MessageCircle, hash: '#chat' },
+  { id: 'settings' as TabType, label: 'Settings', icon: Settings, hash: '#settings' },
 ];
 
-const featureTabs = [
-  { id: 'chat' as FeatureTabType, label: 'Chat with Emma', icon: MessageCircle },
+// Hash路由工具函数
+const getHashFromUrl = (): string => {
+  return window.location.hash.slice(1) || 'overview';
+};
 
+const setHashToUrl = (hash: string): void => {
+  window.location.hash = hash;
+};
 
-  { id: 'tab-sessions' as FeatureTabType, label: 'Saved Tab Sessions', icon: Archive },
-
-];
+const getTabFromHash = (hash: string): TabType => {
+  const validTabs: TabType[] = ['overview', 'chat', 'settings'];
+  return validTabs.includes(hash as TabType) ? (hash as TabType) : 'overview';
+};
 
 function MainTab() {
   return (
@@ -37,13 +42,13 @@ function MainTab() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Bot className="h-5 w-5" />
-            Super Emma - AI Chat Extension
+            Super Emma - AI Extension
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <p className="text-muted-foreground">
-              A powerful AI chat extension that integrates with LM Studio for local AI model interactions.
+              A powerful AI extension that integrates with public and local AI model interactions.
             </p>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -113,8 +118,13 @@ function MainTab() {
   );
 }
 
-function FeaturesTab() {
-  const [activeFeatureTab, setActiveFeatureTab] = useState<FeatureTabType>('chat');
+function ChatTab() {
+  const [activeFeatureTab, setActiveFeatureTab] = useState<'chat' | 'tab-sessions'>('chat');
+
+  const featureTabs = [
+    { id: 'chat' as const, label: 'Chat with Emma', icon: MessageCircle },
+    { id: 'tab-sessions' as const, label: 'Saved Tab Sessions', icon: Archive },
+  ];
 
   const renderFeatureContent = () => {
     switch (activeFeatureTab) {
@@ -470,7 +480,27 @@ function SettingsTab() {
 }
 
 function App() {
-  const [activeTab, setActiveTab] = useState<TabType>('main');
+  const [activeTab, setActiveTab] = useState<TabType>(() => {
+    return getTabFromHash(getHashFromUrl());
+  });
+
+  // 监听hash变化
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = getHashFromUrl();
+      const tab = getTabFromHash(hash);
+      setActiveTab(tab);
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  // 处理tab切换
+  const handleTabChange = (tabId: TabType) => {
+    setActiveTab(tabId);
+    setHashToUrl(tabId);
+  };
 
   return (
     <ThemeProvider defaultTheme="light" storageKey="browser-ext-theme">
@@ -493,7 +523,7 @@ function App() {
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => handleTabChange(tab.id)}
                   className={cn(
                     "flex items-center gap-2 px-3 sm:px-4 py-2 rounded-md text-sm font-medium transition-colors",
                     activeTab === tab.id
@@ -510,8 +540,8 @@ function App() {
 
           {/* Tab Content */}
           <div className="min-h-[500px] w-full">
-            {activeTab === 'main' && <MainTab />}
-            {activeTab === 'features' && <FeaturesTab />}
+            {activeTab === 'overview' && <MainTab />}
+            {activeTab === 'chat' && <ChatTab />}
             {activeTab === 'settings' && <SettingsTab />}
           </div>
         </div>

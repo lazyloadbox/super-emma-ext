@@ -1,7 +1,7 @@
 import { ActionType, ActionEvent } from './types';
 
 /**
- * 事件管理器 - 处理浏览器插件的事件通信
+ * Event Manager - Handles event communication for browser extension
  */
 export class EventManager {
   private static instance: EventManager;
@@ -19,7 +19,7 @@ export class EventManager {
   }
 
   /**
-   * 初始化 runtime 消息监听器
+   * Initialize runtime message listener
    */
   private initializeRuntimeListener() {
     if (chrome?.runtime?.onMessage) {
@@ -38,7 +38,7 @@ export class EventManager {
   }
 
   /**
-   * 发送事件到其他组件
+   * Send event to other components
    */
   public async sendEvent(type: ActionType, data?: any): Promise<void> {
     const event: ActionEvent = {
@@ -47,10 +47,10 @@ export class EventManager {
       timestamp: Date.now()
     };
 
-    // 存储最后一个事件到 storage
+    // Store last event to storage
     await chrome.storage.local.set({ lastAction: event });
 
-    // 发送 runtime 消息
+    // Send runtime message
     try {
       await chrome.runtime.sendMessage({
         type: 'ACTION_EVENT',
@@ -62,12 +62,12 @@ export class EventManager {
       console.warn('Failed to send runtime message:', error);
     }
 
-    // 触发本地监听器
+    // Trigger local listeners
     this.handleEvent(event);
   }
 
   /**
-   * 监听特定类型的事件
+   * Listen for specific type of events
    */
   public addEventListener(type: ActionType, callback: (event: ActionEvent) => void): void {
     if (!this.listeners.has(type)) {
@@ -77,7 +77,7 @@ export class EventManager {
   }
 
   /**
-   * 移除事件监听器
+   * Remove event listener
    */
   public removeEventListener(type: ActionType, callback: (event: ActionEvent) => void): void {
     const listeners = this.listeners.get(type);
@@ -90,7 +90,7 @@ export class EventManager {
   }
 
   /**
-   * 处理事件
+   * Handle events
    */
   private handleEvent(event: ActionEvent): void {
     const listeners = this.listeners.get(event.type);
@@ -106,7 +106,7 @@ export class EventManager {
   }
 
   /**
-   * 监听 storage 变化
+   * Listen for storage changes
    */
   public initializeStorageListener(): void {
     if (chrome?.storage?.onChanged) {
@@ -120,5 +120,5 @@ export class EventManager {
   }
 }
 
-// 导出单例实例
+// Export singleton instance
 export const eventManager = EventManager.getInstance(); 

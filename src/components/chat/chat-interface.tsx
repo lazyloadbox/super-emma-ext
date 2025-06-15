@@ -82,16 +82,16 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ className, actionE
     }
   }, [messages, streamingMessage, streamingReasoning]);
 
-  // 处理传入的事件
+  // Handle incoming events
   useEffect(() => {
     if (actionEvent) {
-      console.log('ChatInterface 收到事件:', actionEvent);
+      console.log('ChatInterface received event:', actionEvent);
       
       if (actionEvent.type === 'GET_PAGE_MARKDOWN_CONTENT' && actionEvent.data?.message) {
         const message = actionEvent.data.message as ChatMessage;
-        console.log('ChatInterface 添加页面内容消息到聊天:', message.content.substring(0, 100) + '...');
+        console.log('ChatInterface adding page content message to chat:', message.content.substring(0, 100) + '...');
         
-        // 检查是否已经有相同内容的消息（避免重复添加）
+        // Check if there's already a message with the same content (avoid duplicates)
         const hasExistingMessage = messages.some(msg => 
           msg.content === message.content && 
           msg.type === 'markdown' &&
@@ -113,7 +113,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ className, actionE
         }
       }
     }
-  }, [actionEvent, messages]); // 依赖 actionEvent 和 messages
+  }, [actionEvent, messages]); // Depends on actionEvent and messages
 
   const initializeConnection = async () => {
     setIsLoading(true);
@@ -133,11 +133,11 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ className, actionE
       // Test connection for each enabled provider
       for (const provider of enabledProviders) {
         try {
-                      // Only process providers that have selected models
-            if (provider.selectedModels.length === 0) {
-              console.log(`Skipping provider ${provider.name} - no models selected`);
-              continue;
-            }
+          // Only process providers that have selected models
+          if (provider.selectedModels.length === 0) {
+            console.log(`Skipping provider ${provider.name} - no models selected`);
+            continue;
+          }
 
             if (provider.type === 'lmstudio') {
               lmStudioClient.current.setBaseUrl(provider.url);
@@ -441,27 +441,22 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ className, actionE
 
   const handleOpenSettings = () => {
     try {
-      // 尝试使用 chrome.runtime.openOptionsPage()
-      if (chrome?.runtime?.openOptionsPage) {
-        chrome.runtime.openOptionsPage();
-      } else {
-        // 备用方案：直接打开 options 页面
-        const optionsUrl = chrome.runtime.getURL('options.html');
-        chrome.tabs.create({ url: optionsUrl });
-      }
+      // Use the new navigation utility to open settings tab
+      const { openOptionsPage } = require('../../lib/utils');
+      openOptionsPage('settings');
     } catch (error) {
-      console.error('Failed to open options page:', error);
-      // 最后的备用方案
+      console.error('Failed to open settings page:', error);
+      // Fallback: directly open options page with hash
       try {
-        const optionsUrl = chrome.runtime.getURL('options.html');
-        window.open(optionsUrl, '_blank');
+        const optionsUrl = chrome.runtime.getURL('options.html#settings');
+        chrome.tabs.create({ url: optionsUrl });
       } catch (fallbackError) {
         console.error('All methods failed to open options page:', fallbackError);
       }
     }
   };
 
-  // 导出聊天记录为Markdown
+  // Export chat history as Markdown
   const handleExportMarkdown = () => {
     if (messages.length === 0) return;
     
@@ -472,7 +467,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ className, actionE
     }
   };
 
-  // 导出聊天记录为PDF
+  // Export chat history as PDF
   const handleExportPDF = async () => {
     if (messages.length === 0) return;
     
@@ -483,7 +478,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ className, actionE
     }
   };
 
-  // 导出聊天记录为HTML
+  // Export chat history as HTML
   const handleExportHTML = () => {
     if (messages.length === 0) return;
     
@@ -494,7 +489,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ className, actionE
     }
   };
 
-  // 通用导出处理函数
+  // Generic export handler function
   const handleExport = async (format: ExportFormat) => {
     if (messages.length === 0) return;
     
@@ -505,13 +500,13 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ className, actionE
     }
   };
 
-  // 打开保存聊天对话框
+  // Open save chat dialog
   const handleSaveChatClick = () => {
     if (messages.length === 0) return;
     setShowSaveChatDialog(true);
   };
 
-  // 保存聊天会话
+  // Save chat session
   const handleSaveChat = async (chatName: string) => {
     if (messages.length === 0) return;
     
@@ -519,53 +514,53 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ className, actionE
     try {
       const chatId = await chatStorageManager.current.saveChat(chatName, messages);
       console.log('Chat saved successfully with ID:', chatId);
-      // 可以在这里添加成功提示
+      // Success notification can be added here
     } catch (error) {
       console.error('Error saving chat:', error);
-      // 可以在这里添加错误提示
+      // Error notification can be added here
     } finally {
       setIsSavingChat(false);
     }
   };
 
-  // 生成默认聊天名称
+  // Generate default chat name
   const getDefaultChatName = (): string => {
     return chatStorageManager.current.generateDefaultChatName(messages);
   };
 
-  // 打开加载聊天对话框
+  // Open load chat dialog
   const handleLoadChatClick = () => {
     setShowLoadChatDialog(true);
   };
 
-  // 加载聊天会话
+  // Load chat session
   const handleLoadChat = async (chatKeyId: string) => {
     setIsLoadingChat(true);
     try {
       const chatMessages = await chatStorageManager.current.loadChatMessages(chatKeyId);
       if (chatMessages) {
-        // 清除当前聊天
+        // Clear current chat
         setMessages(chatMessages);
         setStreamingMessage('');
         setStreamingReasoning('');
         setStreamingMessageId(null);
         setIsTyping(false);
         
-        // 如果有正在进行的请求，取消它
+        // Cancel ongoing request if any
         if (abortController) {
           abortController.abort();
           setAbortController(null);
         }
         
         console.log('Chat loaded successfully:', chatKeyId);
-        // 可以在这里添加成功提示
+        // Success notification can be added here
       } else {
         console.error('Failed to load chat messages');
-        // 可以在这里添加错误提示
+        // Error notification can be added here
       }
     } catch (error) {
       console.error('Error loading chat:', error);
-      // 可以在这里添加错误提示
+      // Error notification can be added here
     } finally {
       setIsLoadingChat(false);
     }
@@ -808,7 +803,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ className, actionE
                         <div className="text-xs opacity-70 text-left">
                           Super Emma • typing...
                         </div>
-                        {/* 优先显示reasoning content */}
+                        {/* Show reasoning content first */}
                         {streamingReasoning && (
                           <div className="border-l-4 border-blue-500 pl-3 mb-3">
                             <div className="text-xs text-blue-600 font-medium mb-1">🤔 Thinking...</div>
@@ -818,14 +813,14 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ className, actionE
                             </div>
                           </div>
                         )}
-                        {/* 然后显示主要响应 */}
+                        {/* Then show main response */}
                         {streamingMessage && (
                           <div className="relative">
                             <StreamingMarkdown content={streamingMessage} className="text-sm" />
                             <span className="animate-pulse text-primary">|</span>
                           </div>
                         )}
-                        {/* 取消按钮 */}
+                        {/* Cancel button */}
                         <div className="flex justify-end pt-2 mt-3 border-t border-gray-200 dark:border-gray-700">
                           <Button
                             variant="outline"
@@ -842,7 +837,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ className, actionE
                   </div>
                 )}
                 
-                {/* 加载指示器 */}
+                {/* Loading indicator */}
                 {isTyping && !streamingMessage && !streamingReasoning && (
                   <div className="flex w-full justify-start mb-4">
                     <Card className="max-w-[80%] p-4 bg-muted">

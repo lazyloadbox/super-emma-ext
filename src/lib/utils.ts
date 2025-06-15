@@ -209,4 +209,19 @@ export function createChatMessage(
     type,
     metadata
   };
-} 
+}
+
+/**
+ * 导航工具函数 - 打开Options页面的特定tab
+ */
+export type OptionsTab = 'overview' | 'chat' | 'settings';
+
+export function openOptionsPage(tab: OptionsTab = 'overview'): void {
+  const url = chrome.runtime.getURL(`options.html#${tab}`);
+  chrome.tabs.create({ url });
+}
+
+export function openOptionsPageInCurrentTab(tab: OptionsTab = 'overview'): void {
+  const url = chrome.runtime.getURL(`options.html#${tab}`);
+  chrome.tabs.update({ url });
+}

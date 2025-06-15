@@ -12,7 +12,7 @@ import {
   AlertDialogTitle,
 } from '../../src/components/ui/alert-dialog';
 import { EmmaAnimation } from '../../src/components/ui/emma-animation';
-import { captureCurrentPageContent, createChatMessage } from '../../src/lib/utils';
+import { captureCurrentPageContent, createChatMessage, openOptionsPage } from '../../src/lib/utils';
 import { eventManager } from '../../src/lib/event-manager';
 
 interface AlertState {
@@ -55,7 +55,7 @@ function App() {
       }
     } catch (error) {
       console.error('Failed to open side panel:', error);
-      showAlert('错误', '无法打开 AI Chat 面板', 'error');
+      showAlert('Error', 'Unable to open AI Chat panel', 'error');
     }
   };
 
@@ -123,7 +123,7 @@ function App() {
 
       // Show success message
       console.log('Session saved successfully!');
-      showAlert('成功', `已保存 ${filteredTabs.length} 个标签页到会话中`, 'success');
+      showAlert('Success', `Saved ${filteredTabs.length} tabs to session`, 'success');
       
       // Close the popup after a short delay
       setTimeout(() => {
@@ -131,7 +131,7 @@ function App() {
       }, 1500);
     } catch (error) {
       console.error('Failed to save tabs:', error);
-      showAlert('错误', '保存标签页会话失败', 'error');
+      showAlert('Error', 'Failed to save tab session', 'error');
     }
   };
 
@@ -171,8 +171,8 @@ function App() {
           await chrome.sidePanel.open({ tabId: tab.id });
         }
 
-        // 6. 显示成功提示
-        showAlert('成功', '页面内容已抓取并发送到 AI Chat！', 'success');
+        // 6. Show success message
+        showAlert('Success', 'Page content captured and sent to AI Chat!', 'success');
 
         // 7. 延迟关闭 popup
         setTimeout(() => {
@@ -180,11 +180,11 @@ function App() {
         }, 1500);
 
       } else {
-        showAlert('错误', result.error || '抓取页面内容失败', 'error');
+        showAlert('Error', result.error || 'Failed to capture page content', 'error');
       }
     } catch (error) {
       console.error('Failed to capture page content:', error);
-      showAlert('错误', '抓取页面内容时发生错误', 'error');
+      showAlert('Error', 'Error occurred while capturing page content', 'error');
     }
   };
 
@@ -192,12 +192,12 @@ function App() {
     <ThemeProvider defaultTheme="light" storageKey="browser-ext-theme">
       <div className="min-h-screen bg-background text-foreground p-4">
         <div className="flex justify-between items-center mb-4">
-          <h1 className="text-xl font-bold">Super Emma</h1>
+          <h1 className="text-xl font-bold text-primary">Super Emma</h1>
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="sm"
-              onClick={() => chrome.runtime.openOptionsPage()}
+              onClick={() => openOptionsPage('settings')}
               title="Open Settings"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -211,7 +211,7 @@ function App() {
         {/* Action Buttons */}
         <div className="mb-6 space-y-3">
           <Button
-            onClick={openSidePanel}
+            onClick={() => openOptionsPage('chat')}
             className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium"
             size="lg"
           >
@@ -241,7 +241,7 @@ function App() {
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
-              抓取页面
+              Capture Page
             </Button>
           </div>
         </div>
@@ -262,7 +262,7 @@ function App() {
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogAction onClick={closeAlert}>
-                确定
+                OK
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

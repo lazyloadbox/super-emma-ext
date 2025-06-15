@@ -15,7 +15,7 @@ export default defineConfig({
       "scripting"
     ],
     action: {
-      default_title: "Super Emma - AI Chat Assistant",
+      default_title: "Super Emma - AI Assistant",
       default_popup: "popup.html"
     }
   },

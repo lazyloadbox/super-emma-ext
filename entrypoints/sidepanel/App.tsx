@@ -11,35 +11,35 @@ function App() {
     // 初始化事件管理器的 storage 监听
     eventManager.initializeStorageListener();
 
-    // 监听页面内容抓取事件
+    // Listen for page content capture events
     const handlePageMarkdownEvent = (event: ActionEvent) => {
-      console.log('Sidepanel App 收到页面内容抓取事件:', event);
+      console.log('Sidepanel App received page content capture event:', event);
       
       if (event.type === 'GET_PAGE_MARKDOWN_CONTENT') {
         setCurrentEvent(event);
         
-        // 设置一个定时器来清除事件，避免重复处理
+        // Set a timer to clear the event to avoid duplicate processing
         setTimeout(() => {
           setCurrentEvent(null);
         }, 1000);
       }
     };
 
-    // 注册事件监听器
+    // Register event listener
     eventManager.addEventListener('GET_PAGE_MARKDOWN_CONTENT', handlePageMarkdownEvent);
 
-    // 检查是否有待处理的事件（用于页面刷新后的恢复）
+    // Check for pending events (for recovery after page refresh)
     // chrome.storage.local.get(['lastAction'], (result) => {
     //   if (result.lastAction && result.lastAction.type === 'GET_PAGE_MARKDOWN_CONTENT') {
     //     handlePageMarkdownEvent(result.lastAction);
-    //     // 清除已处理的事件
+    //     // Clear processed event
     //     chrome.storage.local.remove(['lastAction']);
     //   }
     // });
 
-    console.log('Sidepanel App 已初始化');
+    console.log('Sidepanel App initialized');
 
-    // 清理函数
+    // Cleanup function
     return () => {
       eventManager.removeEventListener('GET_PAGE_MARKDOWN_CONTENT', handlePageMarkdownEvent);
     };
