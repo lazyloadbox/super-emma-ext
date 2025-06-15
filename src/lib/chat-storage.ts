@@ -1,4 +1,5 @@
 import { MessageProps } from '../components/chat/message';
+import { storageUtil, STORAGE_KEYS } from './storage-util';
 
 export interface SavedChatListItem {
   chatKeyId: string;
@@ -16,7 +17,7 @@ export interface SavedChatData {
 
 export class ChatStorageManager {
   private static instance: ChatStorageManager;
-  private readonly CHAT_LIST_KEY = 'saved-chat-list';
+  private readonly CHAT_LIST_KEY = STORAGE_KEYS.CHAT_LIST;
 
   static getInstance(): ChatStorageManager {
     if (!ChatStorageManager.instance) {
@@ -62,13 +63,7 @@ export class ChatStorageManager {
         updatedAt: now
       };
 
-      if (chrome?.storage?.local) {
-        // 浏览器扩展环境
-        await chrome.storage.local.set({ [chatKeyId]: chatData });
-      } else {
-        // 开发环境或其他环境
-        localStorage.setItem(chatKeyId, JSON.stringify(chatData));
-      }
+      await storageUtil.set(chatKeyId, chatData);
 
       // 更新聊天列表
       await this.updateChatList(chatKeyId, name, now, messages.length);
@@ -91,17 +86,7 @@ export class ChatStorageManager {
         messageCount
       };
 
-      let chatList: SavedChatListItem[] = [];
-      
-      if (chrome?.storage?.local) {
-        // 浏览器扩展环境
-        const result = await chrome.storage.local.get([this.CHAT_LIST_KEY]);
-        chatList = result[this.CHAT_LIST_KEY] || [];
-      } else {
-        // 开发环境
-        const stored = localStorage.getItem(this.CHAT_LIST_KEY);
-        chatList = stored ? JSON.parse(stored) : [];
-      }
+      let chatList: SavedChatListItem[] = await storageUtil.get<SavedChatListItem[]>(this.CHAT_LIST_KEY) || [];
 
       // 添加新聊天到列表开头
       chatList.unshift(chatListItem);
@@ -116,11 +101,7 @@ export class ChatStorageManager {
         }
       }
 
-      if (chrome?.storage?.local) {
-        await chrome.storage.local.set({ [this.CHAT_LIST_KEY]: chatList });
-      } else {
-        localStorage.setItem(this.CHAT_LIST_KEY, JSON.stringify(chatList));
-      }
+      await storageUtil.set(this.CHAT_LIST_KEY, chatList);
     } catch (error) {
       console.error('Error updating chat list:', error);
       throw error;
@@ -130,13 +111,7 @@ export class ChatStorageManager {
   // 获取聊天列表
   async getChatList(): Promise<SavedChatListItem[]> {
     try {
-      if (chrome?.storage?.local) {
-        const result = await chrome.storage.local.get([this.CHAT_LIST_KEY]);
-        return result[this.CHAT_LIST_KEY] || [];
-      } else {
-        const stored = localStorage.getItem(this.CHAT_LIST_KEY);
-        return stored ? JSON.parse(stored) : [];
-      }
+      return await storageUtil.get<SavedChatListItem[]>(this.CHAT_LIST_KEY) || [];
     } catch (error) {
       console.error('Error getting chat list:', error);
       return [];
@@ -146,13 +121,7 @@ export class ChatStorageManager {
   // 获取特定聊天数据
   async getChatData(chatKeyId: string): Promise<SavedChatData | null> {
     try {
-      if (chrome?.storage?.local) {
-        const result = await chrome.storage.local.get([chatKeyId]);
-        return result[chatKeyId] || null;
-      } else {
-        const stored = localStorage.getItem(chatKeyId);
-        return stored ? JSON.parse(stored) : null;
-      }
+      return await storageUtil.get<SavedChatData>(chatKeyId);
     } catch (error) {
       console.error('Error getting chat data:', error);
       return null;
@@ -174,30 +143,12 @@ export class ChatStorageManager {
   async deleteChat(chatKeyId: string): Promise<void> {
     try {
       // 删除聊天数据
-      if (chrome?.storage?.local) {
-        await chrome.storage.local.remove([chatKeyId]);
-      } else {
-        localStorage.removeItem(chatKeyId);
-      }
+      await storageUtil.remove(chatKeyId);
 
       // 从聊天列表中移除
-      let chatList: SavedChatListItem[] = [];
-      
-      if (chrome?.storage?.local) {
-        const result = await chrome.storage.local.get([this.CHAT_LIST_KEY]);
-        chatList = result[this.CHAT_LIST_KEY] || [];
-      } else {
-        const stored = localStorage.getItem(this.CHAT_LIST_KEY);
-        chatList = stored ? JSON.parse(stored) : [];
-      }
-
+      let chatList: SavedChatListItem[] = await storageUtil.get<SavedChatListItem[]>(this.CHAT_LIST_KEY) || [];
       chatList = chatList.filter(chat => chat.chatKeyId !== chatKeyId);
-
-      if (chrome?.storage?.local) {
-        await chrome.storage.local.set({ [this.CHAT_LIST_KEY]: chatList });
-      } else {
-        localStorage.setItem(this.CHAT_LIST_KEY, JSON.stringify(chatList));
-      }
+      await storageUtil.set(this.CHAT_LIST_KEY, chatList);
     } catch (error) {
       console.error('Error deleting chat:', error);
       throw error;
@@ -214,34 +165,16 @@ export class ChatStorageManager {
       }
 
       chatData.updatedAt = new Date();
-
-      if (chrome?.storage?.local) {
-        await chrome.storage.local.set({ [chatKeyId]: chatData });
-      } else {
-        localStorage.setItem(chatKeyId, JSON.stringify(chatData));
-      }
+      await storageUtil.set(chatKeyId, chatData);
 
       // 更新聊天列表中的名称
-      let chatList: SavedChatListItem[] = [];
-      
-      if (chrome?.storage?.local) {
-        const result = await chrome.storage.local.get([this.CHAT_LIST_KEY]);
-        chatList = result[this.CHAT_LIST_KEY] || [];
-      } else {
-        const stored = localStorage.getItem(this.CHAT_LIST_KEY);
-        chatList = stored ? JSON.parse(stored) : [];
-      }
+      let chatList: SavedChatListItem[] = await storageUtil.get<SavedChatListItem[]>(this.CHAT_LIST_KEY) || [];
 
       const chatIndex = chatList.findIndex(c => c.chatKeyId === chatKeyId);
       if (chatIndex !== -1) {
         chatList[chatIndex].savedChatName = newName;
         chatList[chatIndex].updatedAt = chatData.updatedAt;
-
-        if (chrome?.storage?.local) {
-          await chrome.storage.local.set({ [this.CHAT_LIST_KEY]: chatList });
-        } else {
-          localStorage.setItem(this.CHAT_LIST_KEY, JSON.stringify(chatList));
-        }
+        await storageUtil.set(this.CHAT_LIST_KEY, chatList);
       }
     } catch (error) {
       console.error('Error renaming chat:', error);

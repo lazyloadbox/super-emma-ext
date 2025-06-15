@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { storageUtil, STORAGE_KEYS } from './storage-util';
 
 type Theme = 'light' | 'dark' | 'system';
 
@@ -32,24 +33,11 @@ export function ThemeProvider({
   const [theme, setTheme] = useState<Theme>(defaultTheme);
   const [actualTheme, setActualTheme] = useState<'light' | 'dark'>('light');
 
-  // Check if we're in a Chrome extension environment
-  const isExtensionContext = typeof chrome !== 'undefined' && chrome.storage;
-
   useEffect(() => {
     // Load theme from storage
     const loadTheme = async () => {
       try {
-        let stored: string | null = null;
-        
-        if (isExtensionContext) {
-          // Use Chrome storage API for extension context
-          const result = await chrome.storage.local.get([storageKey]);
-          stored = result[storageKey];
-        } else {
-          // Fallback to localStorage
-          stored = localStorage.getItem(storageKey);
-        }
-        
+        const stored = await storageUtil.get<string>(STORAGE_KEYS.THEME);
         if (stored && ['light', 'dark', 'system'].includes(stored)) {
           setTheme(stored as Theme);
         }
@@ -59,27 +47,16 @@ export function ThemeProvider({
     };
 
     loadTheme();
-  }, [storageKey, isExtensionContext]);
+  }, [storageKey]);
 
   useEffect(() => {
-    // Listen for storage changes from other pages/tabs
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === storageKey && e.newValue) {
-        const newTheme = e.newValue as Theme;
-        if (['light', 'dark', 'system'].includes(newTheme)) {
-          setTheme(newTheme);
-          console.log('Theme synced from localStorage:', newTheme);
-        }
-      }
-    };
-
-    // Listen for Chrome storage changes (for extension context)
-    const handleChromeStorageChange = (changes: { [key: string]: chrome.storage.StorageChange }) => {
-      if (changes[storageKey]) {
-        const newTheme = changes[storageKey].newValue as Theme;
+    // Listen for storage changes
+    const handleStorageChange = (changes: { [key: string]: chrome.storage.StorageChange }) => {
+      if (changes[STORAGE_KEYS.THEME]) {
+        const newTheme = changes[STORAGE_KEYS.THEME].newValue as Theme;
         if (newTheme && ['light', 'dark', 'system'].includes(newTheme)) {
           setTheme(newTheme);
-          console.log('Theme synced from Chrome storage:', newTheme);
+          console.log('Theme synced from storage:', newTheme);
         }
       }
     };
@@ -93,37 +70,22 @@ export function ThemeProvider({
       }
     };
 
-    // Set up appropriate listeners based on context
-    if (isExtensionContext) {
-      chrome.storage.onChanged.addListener(handleChromeStorageChange);
-    } else {
-      window.addEventListener('storage', handleStorageChange);
-    }
-    
+    // Set up storage listener
+    storageUtil.addChangeListener(STORAGE_KEYS.THEME, handleStorageChange);
     window.addEventListener('themeChange', handleCustomThemeChange as EventListener);
 
     return () => {
-      if (isExtensionContext) {
-        chrome.storage.onChanged.removeListener(handleChromeStorageChange);
-      } else {
-        window.removeEventListener('storage', handleStorageChange);
-      }
+      storageUtil.removeChangeListener(STORAGE_KEYS.THEME, handleStorageChange);
       window.removeEventListener('themeChange', handleCustomThemeChange as EventListener);
     };
-  }, [storageKey, isExtensionContext]);
+  }, [storageKey]);
 
   const handleSetTheme = async (newTheme: Theme) => {
     setTheme(newTheme);
     
-    // Save to appropriate storage
+    // Save to storage
     try {
-      if (isExtensionContext) {
-        // Use Chrome storage API for extension context
-        await chrome.storage.local.set({ [storageKey]: newTheme });
-      } else {
-        // Fallback to localStorage
-        localStorage.setItem(storageKey, newTheme);
-      }
+      await storageUtil.set(STORAGE_KEYS.THEME, newTheme);
     } catch (error) {
       console.warn('Failed to save theme to storage:', error);
     }

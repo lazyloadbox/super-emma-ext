@@ -1,4 +1,5 @@
 import { ActionType, ActionEvent } from './types';
+import { storageUtil, STORAGE_KEYS } from './storage-util';
 
 /**
  * Event Manager - Handles event communication for browser extension
@@ -48,7 +49,7 @@ export class EventManager {
     };
 
     // Store last event to storage
-    await chrome.storage.local.set({ lastAction: event });
+    await storageUtil.set(STORAGE_KEYS.LAST_ACTION, event);
 
     // Send runtime message
     try {
@@ -109,14 +110,14 @@ export class EventManager {
    * Listen for storage changes
    */
   public initializeStorageListener(): void {
-    if (chrome?.storage?.onChanged) {
-      chrome.storage.onChanged.addListener((changes) => {
-        if (changes.lastAction && changes.lastAction.newValue) {
-          const event = changes.lastAction.newValue as ActionEvent;
-          this.handleEvent(event);
-        }
-      });
-    }
+    const handleStorageChange = (changes: { [key: string]: chrome.storage.StorageChange }) => {
+      if (changes[STORAGE_KEYS.LAST_ACTION] && changes[STORAGE_KEYS.LAST_ACTION].newValue) {
+        const event = changes[STORAGE_KEYS.LAST_ACTION].newValue as ActionEvent;
+        this.handleEvent(event);
+      }
+    };
+
+    storageUtil.addChangeListener(STORAGE_KEYS.LAST_ACTION, handleStorageChange);
   }
 }
 

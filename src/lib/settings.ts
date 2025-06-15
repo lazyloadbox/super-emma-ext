@@ -1,3 +1,5 @@
+import { storageUtil, STORAGE_KEYS } from './storage-util';
+
 export type AIProvider = 'lmstudio' | 'ollama' | 'custom';
 
 export interface AIProviderConfig {
@@ -59,38 +61,17 @@ export class SettingsManager {
 
   public async loadSettings(): Promise<ExtensionSettings> {
     try {
-      if (typeof chrome !== 'undefined' && chrome.storage) {
-        const result = await chrome.storage.local.get(['extension-settings']);
-        if (result['extension-settings']) {
-          const loadedSettings = result['extension-settings'];
-          
-          // Check if this is old format and migrate
-          if ('aiProvider' in loadedSettings || 'lmStudioUrl' in loadedSettings) {
-            this.settings = this.migrateOldSettings(loadedSettings);
-            // Save the migrated settings
-            await this.saveSettings(this.settings);
-          } else {
-            this.settings = { ...defaultSettings, ...loadedSettings };
-            // Ensure default providers exist
-            this.settings.providers = { ...defaultProviders, ...this.settings.providers };
-          }
-        }
-      } else {
-        // Fallback to localStorage for development
-        const stored = localStorage.getItem('extension-settings');
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          
-          // Check if this is old format and migrate
-          if ('aiProvider' in parsed || 'lmStudioUrl' in parsed) {
-            this.settings = this.migrateOldSettings(parsed);
-            // Save the migrated settings
-            localStorage.setItem('extension-settings', JSON.stringify(this.settings));
-          } else {
-            this.settings = { ...defaultSettings, ...parsed };
-            // Ensure default providers exist
-            this.settings.providers = { ...defaultProviders, ...this.settings.providers };
-          }
+      const loadedSettings = await storageUtil.get<ExtensionSettings>(STORAGE_KEYS.EXTENSION_SETTINGS);
+      if (loadedSettings) {
+        // Check if this is old format and migrate
+        if ('aiProvider' in loadedSettings || 'lmStudioUrl' in loadedSettings) {
+          this.settings = this.migrateOldSettings(loadedSettings);
+          // Save the migrated settings
+          await this.saveSettings(this.settings);
+        } else {
+          this.settings = { ...defaultSettings, ...loadedSettings };
+          // Ensure default providers exist
+          this.settings.providers = { ...defaultProviders, ...this.settings.providers };
         }
       }
     } catch (error) {
@@ -142,14 +123,8 @@ export class SettingsManager {
     }
     
     try {
-      if (typeof chrome !== 'undefined' && chrome.storage) {
-        await chrome.storage.local.set({ 'extension-settings': this.settings });
-        console.log('Settings saved to chrome.storage.local:', this.settings);
-      } else {
-        // Fallback to localStorage for development
-        localStorage.setItem('extension-settings', JSON.stringify(this.settings));
-        console.log('Settings saved to localStorage:', this.settings);
-      }
+      await storageUtil.set(STORAGE_KEYS.EXTENSION_SETTINGS, this.settings);
+      console.log('Settings saved:', this.settings);
     } catch (error) {
       console.error('Failed to save settings:', error);
       throw error;

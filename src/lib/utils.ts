@@ -1,6 +1,7 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 import TurndownService from 'turndown';
+import { storageUtil, STORAGE_KEYS } from './storage-util';
 import { PageData, CaptureResult, ChatMessage } from './types';
 
 export function cn(...inputs: ClassValue[]) {
@@ -160,10 +161,10 @@ export async function captureCurrentPageContent(): Promise<CaptureResult> {
 
       console.log('Markdown 转换完成，长度:', formattedMarkdown.length);
 
-      // Store in chrome.storage
-      await chrome.storage.local.set({ 
-        latestPageMarkdown: formattedMarkdown,
-        pageMarkdownTimestamp: Date.now()
+      // Store in storage
+      await storageUtil.setMultiple({
+        [STORAGE_KEYS.LATEST_PAGE_MARKDOWN]: formattedMarkdown,
+        [STORAGE_KEYS.PAGE_MARKDOWN_TIMESTAMP]: Date.now()
       });
 
       console.log('页面内容已保存到 storage');

@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button';
 import { Archive, Trash2, Calendar, RotateCcw, X, Edit2, Check, Filter, ChevronDown, Download, Upload } from 'lucide-react';
 import { useToast } from '../components/ui/toast';
+import { storageUtil, STORAGE_KEYS } from '../lib/storage-util';
 
 interface TabData {
   url: string;
@@ -38,22 +39,22 @@ export function TabSessionsFeature() {
     
     // Listen for storage changes to update sessions in real-time
     const handleStorageChange = (changes: { [key: string]: chrome.storage.StorageChange }) => {
-      if (changes.tabSessions) {
-        setSessions(changes.tabSessions.newValue || []);
+      if (changes[STORAGE_KEYS.TAB_SESSIONS]) {
+        setSessions(changes[STORAGE_KEYS.TAB_SESSIONS].newValue || []);
       }
     };
     
-    chrome.storage.onChanged.addListener(handleStorageChange);
+    storageUtil.addChangeListener(STORAGE_KEYS.TAB_SESSIONS, handleStorageChange);
     
     return () => {
-      chrome.storage.onChanged.removeListener(handleStorageChange);
+      storageUtil.removeChangeListener(STORAGE_KEYS.TAB_SESSIONS, handleStorageChange);
     };
   }, []);
 
   const loadSessions = async () => {
     try {
-      const result = await chrome.storage.local.get(['tabSessions']);
-      setSessions(result.tabSessions || []);
+      const sessions = await storageUtil.get<TabSession[]>(STORAGE_KEYS.TAB_SESSIONS) || [];
+      setSessions(sessions);
     } catch (error) {
       console.error('Failed to load sessions:', error);
     } finally {
@@ -77,7 +78,7 @@ export function TabSessionsFeature() {
     try {
       if (deleteTarget.type === 'session') {
         const updatedSessions = sessions.filter(session => session.id !== deleteTarget.sessionId);
-        await chrome.storage.local.set({ tabSessions: updatedSessions });
+        await storageUtil.set(STORAGE_KEYS.TAB_SESSIONS, updatedSessions);
         setSessions(updatedSessions);
       } else if (deleteTarget.type === 'tab' && deleteTarget.tabIndex !== undefined) {
         const updatedSessions = sessions.map(session => {
@@ -87,7 +88,7 @@ export function TabSessionsFeature() {
           }
           return session;
         });
-        await chrome.storage.local.set({ tabSessions: updatedSessions });
+        await storageUtil.set(STORAGE_KEYS.TAB_SESSIONS, updatedSessions);
         setSessions(updatedSessions);
       }
     } catch (error) {
@@ -101,7 +102,7 @@ export function TabSessionsFeature() {
   const deleteSession = async (sessionId: string) => {
     try {
       const updatedSessions = sessions.filter(session => session.id !== sessionId);
-      await chrome.storage.local.set({ tabSessions: updatedSessions });
+      await storageUtil.set(STORAGE_KEYS.TAB_SESSIONS, updatedSessions);
       setSessions(updatedSessions);
     } catch (error) {
       console.error('Failed to delete session:', error);
@@ -122,7 +123,7 @@ export function TabSessionsFeature() {
         session.id === sessionId ? { ...session, name: newName } : session
       );
       
-      await chrome.storage.local.set({ tabSessions: updatedSessions });
+      await storageUtil.set(STORAGE_KEYS.TAB_SESSIONS, updatedSessions);
       setSessions(updatedSessions);
       setEditingSessionId(null);
       setEditingName('');
@@ -262,7 +263,7 @@ export function TabSessionsFeature() {
         // Merge with existing sessions
         const updatedSessions = [...sessions, ...deduplicatedSessions];
         
-        await chrome.storage.local.set({ tabSessions: updatedSessions });
+        await storageUtil.set(STORAGE_KEYS.TAB_SESSIONS, updatedSessions);
         setSessions(updatedSessions);
         
         addToast({

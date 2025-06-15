@@ -19,6 +19,7 @@ import { DropdownMenu, DropdownMenuItem, DropdownMenuSeparator } from '../ui/dro
 import { SaveChatDialog } from '../ui/save-chat-dialog';
 import { LoadChatDialog } from '../ui/load-chat-dialog';
 import { ChatStorageManager } from '../../lib/chat-storage';
+import { storageUtil, STORAGE_KEYS } from '../../lib/storage-util';
 
 interface ChatInterfaceProps {
   className?: string;
@@ -59,17 +60,15 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ className, actionE
   // Listen for settings changes
   useEffect(() => {
     const handleStorageChange = (changes: { [key: string]: chrome.storage.StorageChange }) => {
-      if (changes['extension-settings']) {
+      if (changes[STORAGE_KEYS.EXTENSION_SETTINGS]) {
         initializeConnection();
       }
     };
 
-    if (chrome?.storage?.onChanged) {
-      chrome.storage.onChanged.addListener(handleStorageChange);
-      return () => {
-        chrome.storage.onChanged.removeListener(handleStorageChange);
-      };
-    }
+    storageUtil.addChangeListener(STORAGE_KEYS.EXTENSION_SETTINGS, handleStorageChange);
+    return () => {
+      storageUtil.removeChangeListener(STORAGE_KEYS.EXTENSION_SETTINGS, handleStorageChange);
+    };
   }, []);
 
   // 自动滚动到底部

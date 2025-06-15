@@ -12,6 +12,7 @@ import { LMStudioClient } from '../../src/lib/lm-studio-client';
 import { OllamaClient } from '../../src/lib/ollama-client';
 import { AIProviderCard } from '../../src/components/ai-provider-card';
 import { AddProviderDialog } from '../../src/components/add-provider-dialog';
+import { storageUtil, STORAGE_KEYS } from '../../src/lib/storage-util';
 
 type TabType = 'overview' | 'chat' | 'settings';
 
@@ -227,8 +228,8 @@ function SettingsTab() {
 
     // 监听存储变化，确保设置同步
     const handleStorageChange = (changes: { [key: string]: chrome.storage.StorageChange }) => {
-      if (changes['extension-settings']) {
-        const newSettings = changes['extension-settings'].newValue;
+      if (changes[STORAGE_KEYS.EXTENSION_SETTINGS]) {
+        const newSettings = changes[STORAGE_KEYS.EXTENSION_SETTINGS].newValue;
         if (newSettings) {
           setSettings(newSettings);
           console.log('Settings synced from storage:', newSettings);
@@ -237,15 +238,11 @@ function SettingsTab() {
     };
 
     // 添加存储变化监听器
-    if (typeof chrome !== 'undefined' && chrome.storage) {
-      chrome.storage.onChanged.addListener(handleStorageChange);
-    }
+    storageUtil.addChangeListener(STORAGE_KEYS.EXTENSION_SETTINGS, handleStorageChange);
 
     // 清理监听器
     return () => {
-      if (typeof chrome !== 'undefined' && chrome.storage) {
-        chrome.storage.onChanged.removeListener(handleStorageChange);
-      }
+      storageUtil.removeChangeListener(STORAGE_KEYS.EXTENSION_SETTINGS, handleStorageChange);
     };
   }, [settingsManager]);
 

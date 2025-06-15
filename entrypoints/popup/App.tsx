@@ -14,6 +14,7 @@ import {
 import { EmmaAnimation } from '../../src/components/ui/emma-animation';
 import { captureCurrentPageContent, createChatMessage, openOptionsPage } from '../../src/lib/utils';
 import { eventManager } from '../../src/lib/event-manager';
+import { storageUtil, STORAGE_KEYS } from '../../src/lib/storage-util';
 
 interface AlertState {
   open: boolean;
@@ -104,12 +105,11 @@ function App() {
       };
 
       // Get existing sessions
-      const result = await chrome.storage.local.get(['tabSessions']);
-      const existingSessions = result.tabSessions || [];
+      const existingSessions = await storageUtil.get<any[]>(STORAGE_KEYS.TAB_SESSIONS) || [];
       
       // Add new session
       const updatedSessions = [session, ...existingSessions];
-      await chrome.storage.local.set({ tabSessions: updatedSessions });
+      await storageUtil.set(STORAGE_KEYS.TAB_SESSIONS, updatedSessions);
 
       // Close all tabs except the current one
       const currentTab = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -154,10 +154,9 @@ function App() {
         );
 
         // 3. 存储 Chat 消息到 storage
-        const existingMessages = await chrome.storage.local.get(['chatMessages']);
-        const messages = existingMessages.chatMessages || [];
+        const messages = await storageUtil.get<any[]>(STORAGE_KEYS.CHAT_MESSAGES) || [];
         messages.push(chatMessage);
-        await chrome.storage.local.set({ chatMessages: messages });
+        await storageUtil.set(STORAGE_KEYS.CHAT_MESSAGES, messages);
 
         // 4. 发送事件通知 sidepanel
         await eventManager.sendEvent('GET_PAGE_MARKDOWN_CONTENT', {
